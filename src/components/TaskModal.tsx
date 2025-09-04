@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { validateTask } from '../utils/validation';
 import { LoadingSpinner } from './LoadingSpinner';
+import axios from 'axios';
 
 interface Task {
   task_id: number;
@@ -57,10 +58,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     if (!validateForm() || !user) return;
     
     try {
-      await onSave({
-        task: formData.task.trim(),
-        user_id: user.user_id
-      });
+      await onSave({ task: formData.task, user_id: user.user_id });
       onClose();
       setFormData({ task: '' });
       setErrors({});

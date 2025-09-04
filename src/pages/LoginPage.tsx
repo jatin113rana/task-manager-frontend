@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { mockApi } from '../services/mockApi';
 import { validateUsername, validatePassword } from '../utils/validation';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 export const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -39,14 +39,23 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     
     try {
-      const response = await mockApi.login(formData);
-      login({
-        user_id: response.user_id,
-        user_name: response.user_name,
-        role: response.role as 'admin' | 'user'
+      const {data} = await axios.post('https://task-manager-backend-production-08ad.up.railway.app/auth/login', {
+        user_name: formData.user_name,
+        password: formData.password
       });
-      toast.success('Welcome back!');
-      navigate('/dashboard');
+      login({
+        user_id: data.user_id,
+        user_name: data.user_name,
+        role: data.role as 'admin' | 'user'
+      });
+      // toast.success(data.message ||data.detail);
+      if(data.error){
+        throw new Error(data.message ||data.detail);
+      }
+      console.log("error",data);
+      if(data.error===false){
+        navigate('/dashboard');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Login failed');
     } finally {

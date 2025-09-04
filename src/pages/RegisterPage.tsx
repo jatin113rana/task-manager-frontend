@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
-import { mockApi } from '../services/mockApi';
+// import { mockApi } from '../services/mockApi';
 import { validateUsername, validatePassword, validatePasswordMatch } from '../utils/validation';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 export const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -43,7 +44,13 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
     
     try {
-      await mockApi.register(formData);
+      // await mockApi.register(formData);
+      await axios.post('https://task-manager-backend-production-08ad.up.railway.app/auth/register', {
+        user_name: formData.user_name,
+        password: formData.password,
+        confirm_password: formData.confirm_password,
+        role: formData.role
+      });
       toast.success('Registration successful! Please login.');
       navigate('/login');
     } catch (error) {

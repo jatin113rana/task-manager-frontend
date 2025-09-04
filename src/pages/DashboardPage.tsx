@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { mockApi } from '../services/mockApi';
 import { TaskCard } from '../components/TaskCard';
 import { TaskModal } from '../components/TaskModal';
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Layout } from '../components/Layout';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface Task {
   task_id: number;
@@ -45,8 +45,8 @@ export const DashboardPage: React.FC = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const fetchedTasks = await mockApi.getTasks();
-      setTasks(fetchedTasks);
+      const fetchedTasks = await axios.get('https://task-manager-backend-production-08ad.up.railway.app/tasks/');
+      setTasks(fetchedTasks.data);
     } catch (error) {
       toast.error('Failed to fetch tasks');
     } finally {
@@ -68,16 +68,28 @@ export const DashboardPage: React.FC = () => {
     setModalLoading(true);
     try {
       if (selectedTask) {
-        const updatedTask = await mockApi.updateTask(selectedTask.task_id, taskData);
-        setTasks(prev => prev.map(t => t.task_id === selectedTask.task_id ? updatedTask : t));
+        console.log("Task Data:", taskData);
+        const updatedTask = await axios.put(`https://task-manager-backend-production-08ad.up.railway.app/tasks/${selectedTask.task_id}`, {
+          task: taskData.task,
+          user_id: taskData.user_id
+        });
+
+        console.log(updatedTask.data);
+        setTasks(prev => prev.map(t => t.task_id === updatedTask.data.task_id ? updatedTask.data : t));
         toast.success('Task updated successfully');
+
       } else {
-        const newTask = await mockApi.createTask(taskData);
-        setTasks(prev => [...prev, newTask]);
+        const newTask = await axios.post('https://task-manager-backend-production-08ad.up.railway.app/tasks/', {
+          task: taskData.task,
+          user_id: taskData.user_id
+        });
+        setTasks(prev => [newTask.data, ...prev]);
         toast.success('Task created successfully');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Operation failed');
+      const message = error.response?.data?.detail || 'Operation failed';
+      toast.error(message);
+
       throw error;
     } finally {
       setModalLoading(false);
@@ -91,11 +103,16 @@ export const DashboardPage: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (!taskToDelete || !user) return;
-    
+
     setModalLoading(true);
     try {
-      await mockApi.deleteTask(taskToDelete.task_id, user.user_id);
-      setTasks(prev => prev.filter(t => t.task_id !== taskToDelete.task_id));
+      await axios.delete(`https://task-manager-backend-production-08ad.up.railway.app/tasks/${taskToDelete}`, {
+        params: { user_id: user.user_id }
+      });
+      setTasks(prev => prev.filter(t => t !== taskToDelete));
+      fetchTasks(); // Refresh the task list after deletion
+      setTaskToDelete(null);
+      setDeleteModalOpen(false);
       toast.success('Task deleted successfully');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete task');
@@ -166,8 +183,8 @@ export const DashboardPage: React.FC = () => {
                 {tasks.length === 0 ? 'No tasks yet' : 'No tasks found'}
               </h3>
               <p className="text-gray-600 mb-6">
-                {tasks.length === 0 
-                  ? 'Get started by creating your first task.' 
+                {tasks.length === 0
+                  ? 'Get started by creating your first task.'
                   : 'Try adjusting your search criteria.'}
               </p>
               {tasks.length === 0 && (
